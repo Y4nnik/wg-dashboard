@@ -17,21 +17,49 @@ type TrashPickup = {
   isoDate: string;
 };
 
+function getBerlinNowParts() {
+  const formatter = new Intl.DateTimeFormat("de-DE", {
+    timeZone: "Europe/Berlin",
+    hour: "2-digit",
+    minute: "2-digit",
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+    hourCycle: "h23",
+  });
+
+  const parts = formatter.formatToParts(new Date());
+
+  const get = (type: string) =>
+    Number(parts.find((p) => p.type === type)?.value ?? "0");
+
+  return {
+    year: get("year"),
+    month: get("month"),
+    day: get("day"),
+    hour: get("hour"),
+    minute: get("minute"),
+  };
+}
+
 function getMinutesLabelFromTime(timeText: string): string {
   const match = timeText.match(/^(\d{1,2}):(\d{2})$/);
   if (!match) return timeText || "--";
 
   const [, hh, mm] = match;
+  const departureHour = Number(hh);
+  const departureMinute = Number(mm);
 
-  const now = new Date();
-  const departure = new Date();
-  departure.setHours(Number(hh), Number(mm), 0, 0);
+  const nowBerlin = getBerlinNowParts();
 
-  if (departure.getTime() < now.getTime() - 60_000) {
-    departure.setDate(departure.getDate() + 1);
+  const nowTotal = nowBerlin.hour * 60 + nowBerlin.minute;
+  let departureTotal = departureHour * 60 + departureMinute;
+
+  if (departureTotal < nowTotal - 1) {
+    departureTotal += 24 * 60;
   }
 
-  const diffMin = Math.ceil((departure.getTime() - now.getTime()) / 60000);
+  const diffMin = departureTotal - nowTotal;
 
   if (diffMin <= 0) return "jetzt";
   if (diffMin === 1) return "1 min";

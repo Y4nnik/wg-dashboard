@@ -16,11 +16,22 @@ type TrashPickup = {
   isoDate: string;
 };
 
-function getMinutesLabel(timestamp: number | null): string {
-  if (!timestamp) return "keine Zeit";
+function getMinutesLabelFromTime(timeText: string): string {
+  const match = timeText.match(/^(\d{1,2}):(\d{2})$/);
+  if (!match) return "keine Zeit";
 
-  const diffMs = timestamp - Date.now();
-  const diffMin = Math.ceil(diffMs / 60000);
+  const [, hh, mm] = match;
+
+  const now = new Date();
+  const departure = new Date();
+  departure.setHours(Number(hh), Number(mm), 0, 0);
+
+  // falls die Zeit für heute schon vorbei ist, auf morgen schieben
+  if (departure.getTime() < now.getTime() - 60_000) {
+    departure.setDate(departure.getDate() + 1);
+  }
+
+  const diffMin = Math.ceil((departure.getTime() - now.getTime()) / 60000);
 
   if (diffMin <= 0) return "jetzt";
   if (diffMin === 1) return "in 1 min";
@@ -127,7 +138,7 @@ export default function HomePage() {
                         fontWeight: "bold",
                       }}
                     >
-                      {getMinutesLabel(bus.departureTimestamp)}
+                      {getMinutesLabelFromTime(bus.departure)}
                     </strong>
                   </div>
 
